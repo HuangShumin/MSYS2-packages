@@ -1,0 +1,71 @@
+diff --git a/include/platform.h b/include/platform.h
+index 50365a3..c9ba11e 100644
+--- a/include/platform.h
++++ b/include/platform.h
+@@ -7,6 +7,20 @@
+ #ifndef BB_PLATFORM_H
+ #define BB_PLATFORM_H 1
+ 
++#define HAVE_INCOMPATIBLE_ITOA
++#ifdef HAVE_INCOMPATIBLE_ITOA
++/* Hide itoa(int, char *, int) */
++# define itoa do_not_use_itoa
++/* Hide utoa(unsigned, char *, int) */
++# define utoa do_not_use_utoa
++#endif
++#include <stdlib.h>
++#ifdef HAVE_INCOMPATIBLE_ITOA
++# undef itoa
++# undef utoa
++# define itoa bb_itoa
++# define utoa bb_utoa
++#endif
+ 
+ /* Convenience macros to test the version of gcc. */
+ #undef __GNUC_PREREQ
+diff --git a/libbb/in_ether.c b/libbb/in_ether.c
+index c9cf6a9..d341d2a 100644
+--- a/libbb/in_ether.c
++++ b/libbb/in_ether.c
+@@ -10,6 +10,11 @@
+ #include <net/if_arp.h>
+ #include <net/ethernet.h>
+ 
++/* Octets in one Ethernet addr, from <linux/if_ether.h> */
++#ifndef ETH_ALEN
++#define ETH_ALEN     6
++#endif
++
+ /* Convert Ethernet address from "XX[:]XX[:]XX[:]XX[:]XX[:]XX" to sockaddr.
+  * Return nonzero on error.
+  */
+diff --git a/libbb/udp_io.c b/libbb/udp_io.c
+index 68355e6..3e1e886 100644
+--- a/libbb/udp_io.c
++++ b/libbb/udp_io.c
+@@ -8,6 +8,11 @@
+  */
+ #include "libbb.h"
+ 
++#ifndef HAVE_IN_PKTINFO_IPI_SPEC_DST
++# undef IP_PKTINFO
++# undef IP6_PKTINFO
++#endif
++
+ #if defined(IPV6_PKTINFO) && !defined(IPV6_RECVPKTINFO)
+ # define IPV6_RECVPKTINFO IPV6_PKTINFO
+ #endif
+diff --git a/shell/shell_common.c b/shell/shell_common.c
+index e0582ad..463dc65 100644
+--- a/shell/shell_common.c
++++ b/shell/shell_common.c
+@@ -328,6 +328,9 @@ struct limits {
+ static const struct limits limits_tbl[] = {
+ 	{ RLIMIT_CORE,		9,	"core file size (blocks)" }, // -c
+ 	{ RLIMIT_DATA,		10,	"data seg size (kb)" },      // -d
++#ifndef RLIMIT_NICE
++#define RLIMIT_NICE 13
++#endif
+ 	{ RLIMIT_NICE,		0,	"scheduling priority" },     // -e
+ 	{ RLIMIT_FSIZE,		9,	"file size (blocks)" },      // -f
+ #define LIMIT_F_IDX     3
